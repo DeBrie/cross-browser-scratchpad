@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scratchpad</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="scratchpad">
+      <header class="toolbar">
+        <span class="mark" aria-hidden="true">✦</span>
+        <nav class="note-tabs" aria-label="Note space">
+          <button class="tab is-active" type="button" data-scope="global">All notes</button>
+          <button class="tab" type="button" data-scope="site">This site</button>
+          <button class="tab" type="button" data-scope="ephemeral">Ephemeral</button>
+        </nav>
+        <button id="anchor-button" class="icon-button" type="button" title="Pin in side panel" aria-label="Pin in side panel">📌</button>
+        <button id="sync-button" class="icon-button" type="button" title="Sign in to encrypted sync" aria-label="Sign in to encrypted sync">🔒</button>
+      </header>
+
+      <section class="workspace">
+        <div class="context-row">
+          <span id="context-label">Available everywhere</span>
+          <button id="mode-button" class="mode-button" type="button">Preview</button>
+        </div>
+        <label class="sr-only" for="editor">Markdown note</label>
+        <textarea id="editor" spellcheck="true" placeholder="Start writing…"></textarea>
+        <article id="preview" class="markdown-preview" hidden aria-live="polite"></article>
+        <p id="site-unavailable" class="site-unavailable" hidden>This site doesn’t have a web address to attach a note to.</p>
+      </section>
+
+      <footer class="status-bar">
+        <span id="storage-status" class="storage-status"><span class="database-icon" aria-hidden="true">▣</span> Stored locally</span>
+        <span id="save-status" class="save-status"><span class="status-dot is-saved" aria-hidden="true"></span> Saved just now</span>
+      </footer>
+      <dialog id="sync-dialog"><form id="sync-form" method="dialog"><h2>Sync your notes</h2><p>Optional encrypted sync between browsers.</p><label>Email<input id="sync-email" type="email" required></label><label>Password<input id="sync-password" type="password" required minlength="12"></label><div><button value="cancel">Cancel</button><button id="sync-login" value="login">Sign in</button><button id="sync-signup" value="signup">Create account</button></div><p id="sync-error"></p></form></dialog>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

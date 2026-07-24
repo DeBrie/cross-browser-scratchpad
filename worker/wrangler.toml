@@ -1,0 +1,10 @@
+name = "scratchpad-sync"
+main = "src/index.js"
+compatibility_date = "2026-07-24"
+account_id = "5a0a4c3c72cf17577434c44308739349"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "scratchpad-sync"
+database_id = "7a84fa80-2ca9-40f8-b273-cc3fac305eca"

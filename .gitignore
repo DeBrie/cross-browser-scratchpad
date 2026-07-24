@@ -1,0 +1,10 @@
+.superpowers/
+node_modules/
+.wrangler/
+dist/
+*.zip
+.DS_Store
+.env
+.dev.vars
+docs/superpowers/
+*.log

@@ -1,0 +1,10 @@
+{
+  "name": "chrome-scratchpad",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check src/app.js && node --check src/background.js && node --check src/markdown.js && node --check src/note-store.js && node --check src/crypto.js && node --check src/sync-client.js",
+    "package:firefox": "node scripts/package-firefox.mjs"
+  }
+}
