@@ -16,4 +16,4 @@ Cross-Browser Scratchpad works fully offline and without an account. Optional sy
 
 ## Privacy disclosure
 
-If you choose to enable Sync, the extension sends an opaque account identifier, authentication material, and encrypted note records to the Scratchpad sync service solely to provide cross-browser sync. Note contents and passwords are encrypted or derived locally; ephemeral notes are never transmitted. See the repository privacy policy for details.
+If you choose to enable Sync, the extension sends an opaque account identifier, authentication material, encrypted note records, and the hostname for a site-specific note to the Scratchpad sync service solely to provide cross-browser sync. Note contents and passwords are encrypted or derived locally; ephemeral notes are never transmitted. See the repository privacy policy for details.
