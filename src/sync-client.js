@@ -1,7 +1,7 @@
 import { createVault, decryptRecord, encryptRecord, exportVaultKey, importVaultKey, restoreVault } from './crypto.js';
 import { reconcileNotes, shouldApplyRemote } from './sync-store.js';
 
-export const SYNC_URL = 'https://scratchpad-sync.james-allen1994back.workers.dev';
+export const SYNC_URL = 'https://scratchpad-sync.localintelligence.dev';
 
 async function request(path, options = {}, token) {
   const response = await fetch(`${SYNC_URL}${path}`, { ...options, headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...options.headers } });

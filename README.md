@@ -4,6 +4,8 @@ A local-first, encrypted Markdown scratchpad for Chromium browsers and Firefox.
 
 Scratchpad keeps a global note, a per-site note, and an ephemeral note in one quiet popup. Optional end-to-end encrypted sync connects your global and site notes across browsers without sending note text or passwords to the server.
 
+The optional sync service is available at `scratchpad-sync.localintelligence.dev`.
+
 ## Install in Chrome
 
 1. Open `chrome://extensions`.

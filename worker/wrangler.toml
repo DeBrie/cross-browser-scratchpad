@@ -2,7 +2,11 @@ name = "scratchpad-sync"
 main = "src/index.js"
 compatibility_date = "2026-07-24"
 account_id = "5a0a4c3c72cf17577434c44308739349"
-workers_dev = true
+workers_dev = false
+
+[[routes]]
+pattern = "scratchpad-sync.localintelligence.dev"
+custom_domain = true
 
 [[d1_databases]]
 binding = "DB"

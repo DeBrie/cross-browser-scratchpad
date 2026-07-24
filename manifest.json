@@ -2,9 +2,9 @@
   "manifest_version": 3,
   "name": "Scratchpad",
   "description": "A tiny Markdown scratchpad for everywhere, this site, or this window.",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "permissions": ["storage", "tabs", "sidePanel"],
-  "host_permissions": ["https://scratchpad-sync.james-allen1994back.workers.dev/*"],
+  "host_permissions": ["https://scratchpad-sync.localintelligence.dev/*"],
   "action": {
     "default_title": "Open Scratchpad",
     "default_popup": "src/index.html",
