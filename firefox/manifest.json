@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Cross-Browser Scratchpad",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "Encrypted local-first Markdown notes.",
   "permissions": ["storage", "tabs"],
   "host_permissions": ["https://scratchpad-sync.localintelligence.dev/*"],
   "action": { "default_popup": "src/index.html", "default_icon": { "16": "assets/icon-16.png", "32": "assets/icon-32.png", "48": "assets/icon-48.png", "128": "assets/icon-128.png" } },
+  "sidebar_action": { "default_panel": "src/index.html", "default_title": "Cross-Browser Scratchpad", "default_icon": { "16": "assets/icon-16.png", "32": "assets/icon-32.png", "48": "assets/icon-48.png", "128": "assets/icon-128.png" } },
   "icons": { "16": "assets/icon-16.png", "32": "assets/icon-32.png", "48": "assets/icon-48.png", "128": "assets/icon-128.png" },
   "browser_specific_settings": { "gecko": { "id": "scratchpad@local", "strict_min_version": "121.0" } }
 }

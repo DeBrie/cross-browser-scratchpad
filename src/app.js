@@ -1,6 +1,7 @@
 import { renderMarkdown } from './markdown.js';
 import { canPersist, loadNote, normaliseHost, noteKey, saveNote, uiScopeKey } from './note-store.js';
 import { restoreSession, signIn, signUp, syncNotes } from './sync-client.js';
+import { openScratchpadSidebar } from './sidebar.js';
 
 const SAVE_DELAY = 350;
 
@@ -131,7 +132,7 @@ elements.mode.addEventListener('click', () => {
 });
 elements.anchor.addEventListener('click', async () => {
   try {
-    await chrome.sidePanel.open({ windowId: state.windowId });
+    await openScratchpadSidebar(state.windowId, globalThis.browser ?? chrome);
   } catch (error) {
     console.error('Unable to open side panel', error);
     setSaveStatus('error', 'Could not open side panel');

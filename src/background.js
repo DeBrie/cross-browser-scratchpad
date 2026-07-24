@@ -1,5 +1,5 @@
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
+  chrome.sidePanel?.setPanelBehavior({ openPanelOnActionClick: false });
 });
 
 chrome.windows.onRemoved.addListener((windowId) => {
