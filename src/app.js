@@ -2,6 +2,7 @@ import { renderMarkdown } from './markdown.js';
 import { canPersist, loadNote, normaliseHost, noteKey, saveNote, uiScopeKey } from './note-store.js';
 import { restoreSession, signIn, signUp, syncNotes } from './sync-client.js';
 import { openScratchpadSidebar } from './sidebar.js';
+import { requestFirefoxSyncConsent } from './firefox-consent.js';
 
 const SAVE_DELAY = 350;
 
@@ -144,6 +145,10 @@ elements.form.addEventListener('submit', async (event) => {
   const action = event.submitter?.value;
   if (action === 'cancel') return elements.dialog.close();
   try {
+    if (!await requestFirefoxSyncConsent(globalThis.browser)) {
+      elements.error.textContent = 'Firefox data consent is required to enable sync.';
+      return;
+    }
     elements.error.textContent = 'Unlocking encrypted vault…';
     state.vault = action === 'signup' ? await signUp(elements.email.value, elements.password.value) : await signIn(elements.email.value, elements.password.value);
     state.syncMerged = (await syncNotes(state.vault, state.vault.token)).merged;
