@@ -2,7 +2,7 @@ import { cp, mkdir, rm } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 
 const output = new URL('../dist/firefox/', import.meta.url);
-const archive = new URL('../scratchpad-firefox.zip', import.meta.url);
+const archive = new URL('../dist/scratchpad-firefox.zip', import.meta.url);
 await rm(output, { recursive: true, force: true });
 await rm(archive, { force: true });
 await mkdir(output, { recursive: true });

@@ -11,3 +11,8 @@ test('Firefox packaging recreates its archive before adding files', async () => 
   const script = await readFile(new URL('../scripts/package-firefox.mjs', import.meta.url), 'utf8');
   assert.match(script, /await rm\(archive, \{ force: true \}\);/);
 });
+
+test('Firefox packaging writes the release archive to dist', async () => {
+  const script = await readFile(new URL('../scripts/package-firefox.mjs', import.meta.url), 'utf8');
+  assert.match(script, /new URL\('\.\.\/dist\/scratchpad-firefox\.zip', import\.meta\.url\)/);
+});
