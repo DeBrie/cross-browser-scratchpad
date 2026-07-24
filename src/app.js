@@ -35,19 +35,27 @@ function contextForNote() {
   return { host: state.host, windowId: state.windowId };
 }
 
+function setLabeledIndicator(target, indicatorClass, indicatorText, label) {
+  const indicator = document.createElement('span');
+  indicator.className = indicatorClass;
+  indicator.setAttribute('aria-hidden', 'true');
+  indicator.textContent = indicatorText;
+  target.replaceChildren(indicator, document.createTextNode(` ${label}`));
+}
+
 function setSaveStatus(kind, label) {
   const dotClass = kind === 'saving' ? 'is-saving' : kind === 'error' ? 'is-error' : 'is-saved';
-  elements.save.innerHTML = `<span class="status-dot ${dotClass}" aria-hidden="true"></span> ${label}`;
+  setLabeledIndicator(elements.save, `status-dot ${dotClass}`, '', label);
 }
 
 function updateFooter() {
   if (state.scope === 'ephemeral') {
     elements.storage.classList.add('is-session');
-    elements.storage.innerHTML = '<span class="database-icon" aria-hidden="true">○</span> This window only';
-    elements.save.innerHTML = '<span class="status-dot" aria-hidden="true"></span> Not saved to storage';
+    setLabeledIndicator(elements.storage, 'database-icon', '○', 'This window only');
+    setLabeledIndicator(elements.save, 'status-dot', '', 'Not saved to storage');
   } else {
     elements.storage.classList.remove('is-session');
-    elements.storage.innerHTML = `<span class="database-icon" aria-hidden="true">▣</span> ${state.vault ? 'Encrypted sync enabled' : 'Not syncing between browsers'}`;
+    setLabeledIndicator(elements.storage, 'database-icon', '▣', state.vault ? 'Encrypted sync enabled' : 'Not syncing between browsers');
     setSaveStatus('saved', state.syncMerged ? 'Merged notes safely' : 'Saved just now');
   }
 }
@@ -62,7 +70,17 @@ function updateMode() {
   elements.editor.hidden = state.isPreview;
   elements.preview.hidden = !state.isPreview;
   elements.mode.textContent = state.isPreview ? 'Edit' : 'Preview';
-  if (state.isPreview) elements.preview.innerHTML = renderMarkdown(state.note) || '<p class="empty-preview">Nothing to preview yet.</p>';
+  if (!state.isPreview) return;
+  const rendered = renderMarkdown(state.note);
+  if (!rendered) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-preview';
+    empty.textContent = 'Nothing to preview yet.';
+    elements.preview.replaceChildren(empty);
+    return;
+  }
+  const parsed = new DOMParser().parseFromString(rendered, 'text/html');
+  elements.preview.replaceChildren(...[...parsed.body.children].map((node) => node.cloneNode(true)));
 }
 
 function renderScope() {
