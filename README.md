@@ -40,3 +40,5 @@ npm run package:firefox
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development and pull-request guidance.
+
+Read the [Privacy Policy](PRIVACY.md) before enabling optional encrypted sync.

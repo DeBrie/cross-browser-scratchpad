@@ -20,7 +20,7 @@ jobs:
       - run: npm test
       - run: npm run check
       - run: npm run package:firefox
-      - run: zip -r chrome-scratchpad-extension.zip manifest.json src README.md package.json LICENSE -x '*.DS_Store'
+      - run: zip -r chrome-scratchpad-extension.zip manifest.json src assets README.md PRIVACY.md package.json LICENSE -x '*.DS_Store'
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true

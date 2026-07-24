@@ -22,7 +22,7 @@ jobs:
       - run: npm run check
       - run: npm run package:firefox
       - name: Package Chrome extension
-        run: zip -r chrome-scratchpad-extension.zip manifest.json src README.md package.json LICENSE -x '*.DS_Store'
+        run: zip -r chrome-scratchpad-extension.zip manifest.json src assets README.md PRIVACY.md package.json LICENSE -x '*.DS_Store'
       - uses: actions/upload-artifact@v4
         with:
           name: browser-extensions

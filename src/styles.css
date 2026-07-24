@@ -52,6 +52,7 @@ button { cursor: pointer; }
 .storage-status.is-session .database-icon { color: #9c978e; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 dialog { width: min(340px, calc(100% - 28px)); border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); box-shadow: 0 20px 60px #0004; } dialog::backdrop { background:#29292566; } #sync-form { display:grid; gap:12px; } #sync-form h2 { margin:0; font-size:18px; } #sync-form p { margin:0; color:var(--muted); font-size:12px; } #sync-form label { display:grid; gap:5px; font-size:12px; } #sync-form input { padding:9px; border:1px solid var(--line); border-radius:7px; } #sync-form div { display:flex; gap:7px; justify-content:flex-end; } #sync-form button { border:0; border-radius:7px; padding:8px 10px; background:#eeeae3; } #sync-form button:last-child { background:var(--orange); color:white; }
+.consent { grid-template-columns:16px 1fr; align-items:start; line-height:1.45; color:#5f5951; } #sync-form .consent input { margin:2px 0 0; padding:0; }
 
 @media (min-width: 600px) {
   html, body { min-width: 0; }
