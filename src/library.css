@@ -28,6 +28,12 @@
   background: var(--paper) !important;
 }
 
+#editor.vditor {
+  width: 100% !important;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .vditor {
   border: 0;
 }

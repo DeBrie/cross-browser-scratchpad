@@ -34,6 +34,7 @@ test('the bundled editor starts in instant-render mode without a network CDN', a
     assert.match(markdown, /\*\*Bold\*\* and `code`/);
     assert.match(stdout, /data-heading-rendered="true"/);
     assert.match(stdout, /data-task-rendered="true"/);
+    assert.match(stdout, /data-overflows="false"/);
     assert.match(stdout, /data-no-network="true"/);
   } finally {
     await rm(profile, { recursive: true, force: true });
