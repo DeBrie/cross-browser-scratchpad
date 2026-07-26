@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { normaliseHost, noteKey, canPersist, uiScopeKey } from '../src/note-store.js';
+import { createNote, migrateLegacyNotes, normaliseHost, noteKey, canPersist, uiScopeKey } from '../src/note-store.js';
 
 test('uses a hostname for a site key and rejects browser URLs', () => {
   assert.equal(normaliseHost('https://docs.example.com/a'), 'docs.example.com');
@@ -26,4 +26,17 @@ test('does not persist until a scope has been loaded', () => {
 test('uses a window-scoped UI key when carrying a selected tab to the side panel', () => {
   assert.equal(uiScopeKey(42), 'ui-scope:42');
   assert.equal(uiScopeKey(null), null);
+});
+
+test('migrates an existing site note into a titled library record', () => {
+  const notes = migrateLegacyNotes({ 'site:docs.example.com': '# Useful docs' }, 'site', { host: 'docs.example.com' }, 500);
+  assert.equal(notes.length, 1);
+  assert.deepEqual(notes[0], {
+    id: 'legacy-site-docs-example-com', title: 'Useful docs', body: '# Useful docs', scope: 'site', host: 'docs.example.com', createdAt: 500, updatedAt: 500,
+  });
+});
+
+test('creates a persistent note with a safe default title', () => {
+  const note = createNote({ scope: 'global', now: 700, id: 'note-1' });
+  assert.deepEqual(note, { id: 'note-1', title: 'Untitled note', body: '', scope: 'global', host: null, createdAt: 700, updatedAt: 700 });
 });

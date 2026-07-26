@@ -1,190 +1,347 @@
-import { renderMarkdown } from './markdown.js';
-import { canPersist, loadNote, normaliseHost, noteKey, saveNote, uiScopeKey } from './note-store.js';
-import { restoreSession, signIn, signUp, syncNotes } from './sync-client.js';
-import { openScratchpadSidebar } from './sidebar.js';
-import { requestFirefoxSyncConsent } from './firefox-consent.js';
+import { renderMarkdown } from "./markdown.js";
+import {
+  createNote,
+  loadNotes,
+  normaliseHost,
+  notesForScope,
+  saveNotes,
+  searchNotes,
+  uiLibraryKey,
+  uiScopeKey,
+} from "./note-store.js";
+import { restoreSession, signIn, signUp, syncNotes } from "./sync-client.js";
+import { openScratchpadSidebar } from "./sidebar.js";
+import { requestFirefoxSyncConsent } from "./firefox-consent.js";
 
 const SAVE_DELAY = 350;
-
 const elements = {
-  tabs: [...document.querySelectorAll('.tab')],
-  editor: document.querySelector('#editor'),
-  preview: document.querySelector('#preview'),
-  context: document.querySelector('#context-label'),
-  mode: document.querySelector('#mode-button'),
-  anchor: document.querySelector('#anchor-button'),
-  storage: document.querySelector('#storage-status'),
-  save: document.querySelector('#save-status'),
-  unavailable: document.querySelector('#site-unavailable'),
-  sync: document.querySelector('#sync-button'), dialog: document.querySelector('#sync-dialog'), form: document.querySelector('#sync-form'), email: document.querySelector('#sync-email'), password: document.querySelector('#sync-password'), error: document.querySelector('#sync-error'),
+  tabs: [...document.querySelectorAll(".tab")],
+  library: document.querySelector("#library"),
+  newNote: document.querySelector("#new-note"),
+  search: document.querySelector("#note-search"),
+  list: document.querySelector("#note-list"),
+  libraryTitle: document.querySelector("#library-title"),
+  collapse: document.querySelector("#collapse-library"),
+  title: document.querySelector("#note-title"),
+  editor: document.querySelector("#editor"),
+  preview: document.querySelector("#preview"),
+  context: document.querySelector("#context-label"),
+  mode: document.querySelector("#mode-button"),
+  anchor: document.querySelector("#anchor-button"),
+  storage: document.querySelector("#storage-status"),
+  save: document.querySelector("#save-status"),
+  unavailable: document.querySelector("#site-unavailable"),
+  sync: document.querySelector("#sync-button"),
+  dialog: document.querySelector("#sync-dialog"),
+  form: document.querySelector("#sync-form"),
+  email: document.querySelector("#sync-email"),
+  password: document.querySelector("#sync-password"),
+  error: document.querySelector("#sync-error"),
 };
-
 const state = {
-  scope: 'global',
+  scope: "global",
   host: null,
   windowId: null,
+  notes: [],
+  selectedId: null,
   isPreview: false,
   saveTimer: null,
-  note: '',
   isLoaded: false,
   vault: null,
   syncMerged: false,
+  collapsed: false,
 };
+const context = () => ({ host: state.host, windowId: state.windowId });
+const selectionScope = () =>
+  state.scope === "site" ? `site:${state.host}` : state.scope;
+const activeNotes = () => notesForScope(state.notes, state.scope, context());
+const selected = () =>
+  state.notes.find((note) => note.id === state.selectedId) ?? null;
 
-function contextForNote() {
-  return { host: state.host, windowId: state.windowId };
+function labeled(target, className, symbol, label) {
+  const icon = document.createElement("span");
+  icon.className = className;
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = symbol;
+  target.replaceChildren(icon, document.createTextNode(` ${label}`));
 }
-
-function setLabeledIndicator(target, indicatorClass, indicatorText, label) {
-  const indicator = document.createElement('span');
-  indicator.className = indicatorClass;
-  indicator.setAttribute('aria-hidden', 'true');
-  indicator.textContent = indicatorText;
-  target.replaceChildren(indicator, document.createTextNode(` ${label}`));
+function setSave(kind, label) {
+  labeled(
+    elements.save,
+    `status-dot ${kind === "saving" ? "is-saving" : kind === "error" ? "is-error" : "is-saved"}`,
+    "",
+    label,
+  );
 }
-
-function setSaveStatus(kind, label) {
-  const dotClass = kind === 'saving' ? 'is-saving' : kind === 'error' ? 'is-error' : 'is-saved';
-  setLabeledIndicator(elements.save, `status-dot ${dotClass}`, '', label);
-}
-
 function updateFooter() {
-  if (state.scope === 'ephemeral') {
-    elements.storage.classList.add('is-session');
-    setLabeledIndicator(elements.storage, 'database-icon', '○', 'This window only');
-    setLabeledIndicator(elements.save, 'status-dot', '', 'Not saved to storage');
+  if (state.scope === "ephemeral") {
+    elements.storage.classList.add("is-session");
+    labeled(elements.storage, "database-icon", "○", "This window only");
+    labeled(elements.save, "status-dot", "", "Not saved to storage");
   } else {
-    elements.storage.classList.remove('is-session');
-    setLabeledIndicator(elements.storage, 'database-icon', '▣', state.vault ? 'Encrypted sync enabled' : 'Not syncing between browsers');
-    setSaveStatus('saved', state.syncMerged ? 'Merged notes safely' : 'Saved just now');
+    elements.storage.classList.remove("is-session");
+    labeled(
+      elements.storage,
+      "database-icon",
+      "▣",
+      state.vault ? "Encrypted sync enabled" : "Not syncing between browsers",
+    );
+    setSave(
+      "saved",
+      state.syncMerged ? "Merged notes safely" : "Saved just now",
+    );
   }
 }
-
 function updateContext() {
-  if (state.scope === 'global') elements.context.textContent = 'Available everywhere';
-  if (state.scope === 'site') elements.context.textContent = state.host ? `Only for ${state.host}` : 'Unavailable on this page';
-  if (state.scope === 'ephemeral') elements.context.textContent = 'Clears when this window closes';
+  elements.context.textContent =
+    state.scope === "global"
+      ? "Available everywhere"
+      : state.scope === "site"
+        ? state.host
+          ? `Only for ${state.host}`
+          : "Unavailable on this page"
+        : "Clears when this window closes";
+  elements.libraryTitle.textContent =
+    state.scope === "global"
+      ? "All notes"
+      : state.scope === "site"
+        ? state.host || "This site"
+        : "This window";
 }
-
 function updateMode() {
+  const note = selected();
   elements.editor.hidden = state.isPreview;
   elements.preview.hidden = !state.isPreview;
-  elements.mode.textContent = state.isPreview ? 'Edit' : 'Preview';
+  elements.mode.textContent = state.isPreview ? "Edit" : "Preview";
   if (!state.isPreview) return;
-  const rendered = renderMarkdown(state.note);
+  const rendered = renderMarkdown(note?.body || "");
   if (!rendered) {
-    const empty = document.createElement('p');
-    empty.className = 'empty-preview';
-    empty.textContent = 'Nothing to preview yet.';
+    const empty = document.createElement("p");
+    empty.className = "empty-preview";
+    empty.textContent = "Nothing to preview yet.";
     elements.preview.replaceChildren(empty);
     return;
   }
-  const parsed = new DOMParser().parseFromString(rendered, 'text/html');
-  elements.preview.replaceChildren(...[...parsed.body.children].map((node) => node.cloneNode(true)));
+  const parsed = new DOMParser().parseFromString(rendered, "text/html");
+  elements.preview.replaceChildren(
+    ...[...parsed.body.children].map((node) => node.cloneNode(true)),
+  );
 }
-
-function renderScope() {
-  const isUnavailable = state.scope === 'site' && !state.host;
-  elements.tabs.forEach((tab) => tab.classList.toggle('is-active', tab.dataset.scope === state.scope));
-  elements.editor.disabled = isUnavailable;
-  elements.editor.hidden = isUnavailable || state.isPreview;
-  elements.preview.hidden = isUnavailable || !state.isPreview;
-  elements.unavailable.hidden = !isUnavailable;
-  elements.mode.hidden = isUnavailable;
+function renderList() {
+  const filtered = searchNotes(activeNotes(), elements.search.value);
+  elements.list.replaceChildren();
+  if (!filtered.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-list";
+    empty.textContent = elements.search.value
+      ? "No matching notes."
+      : "No notes yet.";
+    elements.list.append(empty);
+    return;
+  }
+  for (const note of filtered) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = `note-row${note.id === state.selectedId ? " is-active" : ""}`;
+    const title = document.createElement("strong");
+    title.textContent = note.title || "Untitled note";
+    const summary = document.createElement("span");
+    summary.textContent = note.body.replace(/\s+/g, " ").trim() || "Empty note";
+    row.append(title, summary);
+    row.addEventListener("click", () => selectNote(note.id));
+    elements.list.append(row);
+  }
+}
+function renderWorkspace() {
+  const note = selected();
+  const unavailable = state.scope === "site" && !state.host;
+  elements.tabs.forEach((tab) =>
+    tab.classList.toggle("is-active", tab.dataset.scope === state.scope),
+  );
+  elements.title.disabled = unavailable || !note;
+  elements.editor.disabled = unavailable || !note;
+  elements.title.hidden = unavailable;
+  elements.editor.hidden = unavailable || state.isPreview;
+  elements.preview.hidden = unavailable || !state.isPreview;
+  elements.unavailable.hidden = !unavailable;
+  elements.mode.hidden = unavailable;
+  elements.title.value = note?.title || "";
+  elements.editor.value = note?.body || "";
   updateContext();
   updateFooter();
   updateMode();
 }
+function render() {
+  elements.library.classList.toggle("is-collapsed", state.collapsed);
+  elements.collapse.setAttribute("aria-expanded", String(!state.collapsed));
+  renderList();
+  renderWorkspace();
+}
 
+async function saveUiState() {
+  const key = uiLibraryKey(state.windowId);
+  if (!key) return;
+  const values = await chrome.storage.session.get(key);
+  await chrome.storage.session.set({
+    [key]: {
+      ...(values[key] || {}),
+      collapsed: state.collapsed,
+      [selectionScope()]: state.selectedId,
+    },
+  });
+}
 async function persistNow() {
   window.clearTimeout(state.saveTimer);
-  if (!canPersist(state)) return;
-  if (state.scope !== 'ephemeral') setSaveStatus('saving', 'Saving…');
+  if (!state.isLoaded) return;
+  const note = selected();
+  if (!note) return;
+  if (state.scope !== "ephemeral") setSave("saving", "Saving…");
   try {
-    await saveNote(state.scope, contextForNote(), state.note);
-    if (state.vault && state.scope !== 'ephemeral') {
-      const key = noteKey(state.scope, contextForNote());
-      await chrome.storage.local.set({ [`updated:${key}`]: Date.now() });
+    await saveNotes(state.scope, context(), state.notes);
+    if (state.vault && state.scope !== "ephemeral") {
       await syncNotes(state.vault, state.vault.token);
     }
-    if (state.scope !== 'ephemeral') setSaveStatus('saved', 'Saved just now');
+    if (state.scope !== "ephemeral") setSave("saved", "Saved just now");
   } catch (error) {
-    console.error('Unable to save note', error);
-    if (state.scope !== 'ephemeral') setSaveStatus('error', 'Could not save');
+    console.error("Unable to save note", error);
+    if (state.scope !== "ephemeral") setSave("error", "Could not save");
   }
 }
-
 function scheduleSave() {
   window.clearTimeout(state.saveTimer);
-  if (state.scope !== 'ephemeral') setSaveStatus('saving', 'Saving…');
+  if (state.scope !== "ephemeral") setSave("saving", "Saving…");
   state.saveTimer = window.setTimeout(persistNow, SAVE_DELAY);
 }
-
+async function selectNote(id) {
+  if (state.selectedId === id) return;
+  await persistNow();
+  state.selectedId = id;
+  state.isPreview = false;
+  await saveUiState();
+  render();
+  elements.editor.focus();
+}
+async function createNewNote() {
+  const now = Date.now();
+  const note = createNote({ scope: state.scope, host: state.host, now });
+  state.notes = [...state.notes, note];
+  state.selectedId = note.id;
+  state.isPreview = false;
+  await saveUiState();
+  await persistNow();
+  render();
+  elements.title.focus();
+}
 async function loadScope(scope) {
   if (state.isLoaded) await persistNow();
   state.scope = scope;
-  const scopeKey = uiScopeKey(state.windowId);
-  if (scopeKey) await chrome.storage.session.set({ [scopeKey]: scope });
   state.isPreview = false;
-  state.note = state.scope === 'site' && !state.host ? '' : await loadNote(state.scope, contextForNote());
+  const key = uiScopeKey(state.windowId);
+  if (key) await chrome.storage.session.set({ [key]: scope });
+  state.notes =
+    state.scope === "site" && !state.host
+      ? []
+      : await loadNotes(state.scope, context());
+  const uiKey = uiLibraryKey(state.windowId);
+  const ui = uiKey ? (await chrome.storage.session.get(uiKey))[uiKey] : null;
+  state.collapsed = Boolean(ui?.collapsed);
+  const candidates = activeNotes();
+  state.selectedId = candidates.some(
+    (note) => note.id === ui?.[selectionScope()],
+  )
+    ? ui[selectionScope()]
+    : (candidates[0]?.id ?? null);
   state.isLoaded = true;
-  elements.editor.value = state.note;
-  renderScope();
-  if (!(state.scope === 'site' && !state.host)) elements.editor.focus();
+  render();
+  if (!state.selectedId && !(state.scope === "site" && !state.host))
+    await createNewNote();
+  else if (state.selectedId) elements.editor.focus();
 }
-
 async function getBrowserContext() {
-  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    lastFocusedWindow: true,
+  });
   const currentWindow = await chrome.windows.getCurrent();
   state.windowId = tab?.windowId ?? currentWindow.id;
   state.host = normaliseHost(tab?.url);
 }
 
-elements.tabs.forEach((tab) => tab.addEventListener('click', () => loadScope(tab.dataset.scope)));
-elements.editor.addEventListener('input', () => {
-  state.note = elements.editor.value;
-  scheduleSave();
+elements.tabs.forEach((tab) =>
+  tab.addEventListener("click", () => loadScope(tab.dataset.scope)),
+);
+elements.newNote.addEventListener("click", createNewNote);
+elements.search.addEventListener("input", renderList);
+elements.collapse.addEventListener("click", async () => {
+  state.collapsed = !state.collapsed;
+  await saveUiState();
+  render();
 });
-elements.mode.addEventListener('click', () => {
+for (const field of [elements.title, elements.editor])
+  field.addEventListener("input", () => {
+    const note = selected();
+    if (!note) return;
+    note[field === elements.title ? "title" : "body"] = field.value;
+    note.updatedAt = Date.now();
+    renderList();
+    scheduleSave();
+  });
+elements.mode.addEventListener("click", () => {
   state.isPreview = !state.isPreview;
   updateMode();
 });
-elements.anchor.addEventListener('click', async () => {
+elements.anchor.addEventListener("click", async () => {
   try {
     await openScratchpadSidebar(state.windowId, globalThis.browser ?? chrome);
   } catch (error) {
-    console.error('Unable to open side panel', error);
-    setSaveStatus('error', 'Could not open side panel');
+    console.error("Unable to open side panel", error);
+    setSave("error", "Could not open side panel");
   }
 });
-elements.sync.addEventListener('click', () => elements.dialog.showModal());
-elements.form.addEventListener('submit', async (event) => {
+elements.sync.addEventListener("click", () => elements.dialog.showModal());
+elements.form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const action = event.submitter?.value;
-  if (action === 'cancel') return elements.dialog.close();
+  if (action === "cancel") return elements.dialog.close();
   try {
-    if (!await requestFirefoxSyncConsent(globalThis.browser)) {
-      elements.error.textContent = 'Firefox data consent is required to enable sync.';
+    if (!(await requestFirefoxSyncConsent(globalThis.browser))) {
+      elements.error.textContent =
+        "Firefox data consent is required to enable sync.";
       return;
     }
-    elements.error.textContent = 'Unlocking encrypted vault…';
-    state.vault = action === 'signup' ? await signUp(elements.email.value, elements.password.value) : await signIn(elements.email.value, elements.password.value);
+    elements.error.textContent = "Unlocking encrypted vault…";
+    state.vault =
+      action === "signup"
+        ? await signUp(elements.email.value, elements.password.value)
+        : await signIn(elements.email.value, elements.password.value);
     state.syncMerged = (await syncNotes(state.vault, state.vault.token)).merged;
-    elements.dialog.close(); updateFooter();
-  } catch (error) { elements.error.textContent = error.message; }
+    state.notes = await loadNotes(state.scope, context());
+    elements.dialog.close();
+    render();
+  } catch (error) {
+    elements.error.textContent = error.message;
+  }
 });
-window.addEventListener('pagehide', () => persistNow());
-
+window.addEventListener("pagehide", () => persistNow());
 getBrowserContext()
   .then(async () => {
     state.vault = await restoreSession();
-    if (state.vault) state.syncMerged = (await syncNotes(state.vault, state.vault.token)).merged;
-    const scopeKey = uiScopeKey(state.windowId);
-    const savedScope = scopeKey ? (await chrome.storage.session.get(scopeKey))[scopeKey] : null;
-    await loadScope(['global', 'site', 'ephemeral'].includes(savedScope) ? savedScope : 'global');
+    if (state.vault)
+      state.syncMerged = (
+        await syncNotes(state.vault, state.vault.token)
+      ).merged;
+    const key = uiScopeKey(state.windowId);
+    const savedScope = key
+      ? (await chrome.storage.session.get(key))[key]
+      : null;
+    await loadScope(
+      ["global", "site", "ephemeral"].includes(savedScope)
+        ? savedScope
+        : "global",
+    );
   })
   .catch((error) => {
-    console.error('Unable to read current tab', error);
+    console.error("Unable to read current tab", error);
     state.windowId = null;
-    loadScope('global');
+    loadScope("global");
   });

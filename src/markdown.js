@@ -1,35 +1,40 @@
 export function escapeHtml(value) {
   return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function inlineMarkdown(text) {
   let output = escapeHtml(text);
-  output = output.replace(/`([^`]+)`/g, '<code>$1</code>');
-  output = output.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-  output = output.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  output = output.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
+  output = output.replace(/`([^`]+)`/g, "<code>$1</code>");
+  output = output.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+  );
+  output = output.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  output = output.replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
   return output;
 }
 
 export function renderMarkdown(source) {
-  const lines = String(source ?? '').replaceAll('\r\n', '\n').split('\n');
+  const lines = String(source ?? "")
+    .replaceAll("\r\n", "\n")
+    .split("\n");
   const output = [];
   let listItems = [];
   let paragraph = [];
 
   const flushList = () => {
     if (!listItems.length) return;
-    output.push(`<ul>${listItems.join('')}</ul>`);
+    output.push(`<ul>${listItems.join("")}</ul>`);
     listItems = [];
   };
   const flushParagraph = () => {
     if (!paragraph.length) return;
-    output.push(`<p>${paragraph.map(inlineMarkdown).join('<br>')}</p>`);
+    output.push(`<p>${paragraph.map(inlineMarkdown).join("<br>")}</p>`);
     paragraph = [];
   };
 
@@ -45,8 +50,10 @@ export function renderMarkdown(source) {
       flushParagraph();
       const task = /^\[([ xX])\]\s+(.*)$/.exec(list[1]);
       if (task) {
-        const checked = task[1].toLowerCase() === 'x' ? ' checked' : '';
-        listItems.push(`<li class="task-item"><input type="checkbox"${checked} disabled> ${inlineMarkdown(task[2])}</li>`);
+        const checked = task[1].toLowerCase() === "x" ? " checked" : "";
+        listItems.push(
+          `<li class="task-item"><input type="checkbox"${checked} disabled> ${inlineMarkdown(task[2])}</li>`,
+        );
       } else {
         listItems.push(`<li>${inlineMarkdown(list[1])}</li>`);
       }
@@ -60,5 +67,5 @@ export function renderMarkdown(source) {
   }
   flushList();
   flushParagraph();
-  return output.join('');
+  return output.join("");
 }
