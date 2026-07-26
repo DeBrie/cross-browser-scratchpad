@@ -45,6 +45,10 @@ export function createNote({ scope, host = null, now = Date.now(), id = crypto.r
   return { id, title, body, scope, host: scope === 'site' ? host : null, createdAt: now, updatedAt: now };
 }
 
+export function deleteNote(notes, id, now = Date.now()) {
+  return notes.map((note) => note.id === id ? { ...note, deletedAt: now, updatedAt: now } : note);
+}
+
 export function migrateLegacyNotes(values, scope, { host } = {}, now = Date.now()) {
   const key = noteKey(scope, { host });
   if (!key || typeof values[key] !== 'string') return [];
@@ -77,7 +81,7 @@ export async function saveNotes(scope, context, notes) {
 }
 
 export function notesForScope(notes, scope, { host } = {}) {
-  return notes.filter((note) => note.scope === scope && (scope !== 'site' || note.host === host));
+  return notes.filter((note) => !note.deletedAt && note.scope === scope && (scope !== 'site' || note.host === host));
 }
 
 export function searchNotes(notes, query) {

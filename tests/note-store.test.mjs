@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createNote, migrateLegacyNotes, normaliseHost, noteKey, canPersist, uiScopeKey } from '../src/note-store.js';
+import { createNote, deleteNote, migrateLegacyNotes, normaliseHost, noteKey, canPersist, notesForScope, uiScopeKey } from '../src/note-store.js';
 
 test('uses a hostname for a site key and rejects browser URLs', () => {
   assert.equal(normaliseHost('https://docs.example.com/a'), 'docs.example.com');
@@ -39,4 +39,11 @@ test('migrates an existing site note into a titled library record', () => {
 test('creates a persistent note with a safe default title', () => {
   const note = createNote({ scope: 'global', now: 700, id: 'note-1' });
   assert.deepEqual(note, { id: 'note-1', title: 'Untitled note', body: '', scope: 'global', host: null, createdAt: 700, updatedAt: 700 });
+});
+
+test('deletes a note with a syncable tombstone and removes it from its space', () => {
+  const note = createNote({ scope: 'global', now: 700, id: 'note-1' });
+  const deleted = deleteNote([note], 'note-1', 900);
+  assert.deepEqual(deleted[0], { ...note, deletedAt: 900, updatedAt: 900 });
+  assert.deepEqual(notesForScope(deleted, 'global'), []);
 });

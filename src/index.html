@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Scratchpad</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="library.css" />
   </head>
   <body>
     <main class="scratchpad">
@@ -70,13 +71,13 @@
               Preview
             </button>
           </div>
-          <label class="sr-only" for="note-title">Note title</label
+          <div class="note-heading"><label class="sr-only" for="note-title">Note title</label
           ><input
             id="note-title"
             class="note-title"
             placeholder="Untitled note"
             autocomplete="off"
-          />
+          /><button id="delete-note" class="delete-note" type="button" title="Delete note" aria-label="Delete note">⌫</button></div>
           <label class="sr-only" for="editor">Markdown note</label
           ><textarea
             id="editor"

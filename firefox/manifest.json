@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Cross-Browser Scratchpad",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Encrypted local-first Markdown notes.",
   "permissions": ["storage", "tabs"],
   "host_permissions": ["https://scratchpad-sync.localintelligence.dev/*"],

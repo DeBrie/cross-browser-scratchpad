@@ -1,6 +1,7 @@
 import { renderMarkdown } from "./markdown.js";
 import {
   createNote,
+  deleteNote,
   loadNotes,
   normaliseHost,
   notesForScope,
@@ -23,6 +24,7 @@ const elements = {
   libraryTitle: document.querySelector("#library-title"),
   collapse: document.querySelector("#collapse-library"),
   title: document.querySelector("#note-title"),
+  deleteNote: document.querySelector("#delete-note"),
   editor: document.querySelector("#editor"),
   preview: document.querySelector("#preview"),
   context: document.querySelector("#context-label"),
@@ -159,6 +161,8 @@ function renderWorkspace() {
     tab.classList.toggle("is-active", tab.dataset.scope === state.scope),
   );
   elements.title.disabled = unavailable || !note;
+  elements.deleteNote.disabled = unavailable || !note;
+  elements.deleteNote.hidden = unavailable || !note;
   elements.editor.disabled = unavailable || !note;
   elements.title.hidden = unavailable;
   elements.editor.hidden = unavailable || state.isPreview;
@@ -232,6 +236,18 @@ async function createNewNote() {
   render();
   elements.title.focus();
 }
+async function deleteSelectedNote() {
+  const note = selected();
+  if (!note || !window.confirm(`Delete “${note.title || "Untitled note"}”?`)) return;
+  state.notes = deleteNote(state.notes, note.id);
+  state.selectedId = activeNotes()[0]?.id ?? null;
+  state.isPreview = false;
+  await saveNotes(state.scope, context(), state.notes);
+  if (state.vault && state.scope !== "ephemeral") await syncNotes(state.vault, state.vault.token);
+  await saveUiState();
+  render();
+  if (state.selectedId) elements.editor.focus();
+}
 async function loadScope(scope) {
   if (state.isLoaded) await persistNow();
   state.scope = scope;
@@ -271,6 +287,7 @@ elements.tabs.forEach((tab) =>
   tab.addEventListener("click", () => loadScope(tab.dataset.scope)),
 );
 elements.newNote.addEventListener("click", createNewNote);
+elements.deleteNote.addEventListener("click", deleteSelectedNote);
 elements.search.addEventListener("input", renderList);
 elements.collapse.addEventListener("click", async () => {
   state.collapsed = !state.collapsed;
