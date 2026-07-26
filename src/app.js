@@ -10,7 +10,7 @@ import {
   uiScopeKey,
 } from "./note-store.js";
 import { restoreSession, signIn, signUp, syncNotes } from "./sync-client.js";
-import { openScratchpadSidebar } from "./sidebar.js";
+import { isScratchpadSidebarOpen, openScratchpadSidebar } from "./sidebar.js";
 import { requestFirefoxSyncConsent } from "./firefox-consent.js";
 
 const SAVE_DELAY = 350;
@@ -290,6 +290,13 @@ async function getBrowserContext() {
   state.windowId = tab?.windowId ?? currentWindow.id;
   state.host = normaliseHost(tab?.url);
 }
+async function updateAnchorVisibility() {
+  elements.anchor.hidden = await isScratchpadSidebarOpen(
+    state.windowId,
+    globalThis.browser ?? chrome,
+    location.href,
+  );
+}
 
 elements.tabs.forEach((tab) =>
   tab.addEventListener("click", () => loadScope(tab.dataset.scope)),
@@ -313,6 +320,7 @@ elements.title.addEventListener("input", () => {
 elements.anchor.addEventListener("click", async () => {
   try {
     await openScratchpadSidebar(state.windowId, globalThis.browser ?? chrome);
+    elements.anchor.hidden = true;
   } catch (error) {
     console.error("Unable to open side panel", error);
     setSave("error", "Could not open side panel");
@@ -347,6 +355,7 @@ window.addEventListener("pagehide", () => persistNow());
 initialiseEditor();
 getBrowserContext()
   .then(async () => {
+    await updateAnchorVisibility();
     state.vault = await restoreSession();
     if (state.vault)
       state.syncMerged = (
