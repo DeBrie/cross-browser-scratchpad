@@ -15,6 +15,7 @@ test('uses a bundled instant-render Markdown editor instead of a custom contente
   assert.match(app, /new Vditor\("editor",/);
   assert.match(app, /mode:\s*"ir"/);
   assert.match(app, /width:\s*"100%"/);
+  assert.match(app, /icon:\s*""/);
   assert.match(app, /cache:\s*\{\s*enable:\s*false\s*\}/);
   assert.doesNotMatch(app, /markdownFromEditor/);
   assert.doesNotMatch(app, /renderLiveMarkdown/);

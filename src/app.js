@@ -131,6 +131,7 @@ function initialiseEditor() {
     cdn: new URL("./vendor/vditor", import.meta.url).href,
     lang: "en_US",
     toolbar: [],
+    icon: "",
     width: "100%",
     minHeight: 0,
     placeholder: "Start writing…",

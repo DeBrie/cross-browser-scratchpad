@@ -20,6 +20,7 @@
         cdn: base,
         lang: 'en_US',
         toolbar: [],
+        icon: '',
         width: '100%',
         value: markdown,
         after() {
@@ -37,6 +38,7 @@
             document.body.dataset.overflows = String(
               canvas.scrollWidth > frame.clientWidth || root.scrollWidth > frame.clientWidth,
             );
+            document.body.dataset.hasInlineIconScript = String(Boolean(document.querySelector('#vditorIconScript')));
             document.body.dataset.noNetwork = String(![...document.scripts].some((script) => /^https?:/.test(script.src)));
           });
         },
