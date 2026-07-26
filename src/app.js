@@ -34,6 +34,7 @@ const elements = {
   sync: document.querySelector("#sync-button"),
   dialog: document.querySelector("#sync-dialog"),
   form: document.querySelector("#sync-form"),
+  cancel: document.querySelector("#sync-cancel"),
   email: document.querySelector("#sync-email"),
   password: document.querySelector("#sync-password"),
   error: document.querySelector("#sync-error"),
@@ -317,6 +318,7 @@ elements.anchor.addEventListener("click", async () => {
   }
 });
 elements.sync.addEventListener("click", () => elements.dialog.showModal());
+elements.cancel.addEventListener("click", () => elements.dialog.close());
 elements.form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const action = event.submitter?.value;
