@@ -21,9 +21,15 @@
   color: var(--red);
 }
 
+#editor.vditor,
+#editor .vditor-content,
+#editor .vditor-ir,
+#editor .vditor-ir .vditor-reset {
+  background: var(--paper) !important;
+}
+
 .vditor {
   border: 0;
-  background: transparent;
 }
 
 .vditor .vditor-toolbar,
@@ -34,7 +40,6 @@
 
 .vditor .vditor-content {
   min-height: 0;
-  background: transparent;
 }
 
 .vditor .vditor-ir {
