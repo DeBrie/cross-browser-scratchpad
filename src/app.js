@@ -2,13 +2,13 @@ import {
   createNote,
   deleteNote,
   loadNotes,
-  normaliseHost,
   notesForScope,
   saveNotes,
   searchNotes,
   uiLibraryKey,
   uiScopeKey,
 } from "./note-store.js";
+import { getBrowserContext } from "./browser-context.js";
 import { restoreSession, signIn, signUp, syncNotes } from "./sync-client.js";
 import { isScratchpadSidebarOpen, openScratchpadSidebar } from "./sidebar.js";
 import { requestFirefoxSyncConsent } from "./firefox-consent.js";
@@ -281,15 +281,6 @@ async function loadScope(scope) {
     await createNewNote();
   else if (state.selectedId) instantEditor?.focus();
 }
-async function getBrowserContext() {
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    lastFocusedWindow: true,
-  });
-  const currentWindow = await chrome.windows.getCurrent();
-  state.windowId = tab?.windowId ?? currentWindow.id;
-  state.host = normaliseHost(tab?.url);
-}
 async function updateAnchorVisibility() {
   elements.anchor.hidden = await isScratchpadSidebarOpen(
     state.windowId,
@@ -353,8 +344,10 @@ elements.form.addEventListener("submit", async (event) => {
 });
 window.addEventListener("pagehide", () => persistNow());
 initialiseEditor();
-getBrowserContext()
-  .then(async () => {
+getBrowserContext(globalThis.browser ?? chrome)
+  .then(async ({ windowId, host }) => {
+    state.windowId = windowId;
+    state.host = host;
     await updateAnchorVisibility();
     state.vault = await restoreSession();
     if (state.vault)
