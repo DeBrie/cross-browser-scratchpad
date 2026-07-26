@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Cross-Browser Scratchpad",
   "description": "A tiny Markdown scratchpad for everywhere, this site, or this window.",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "permissions": ["storage", "tabs", "sidePanel"],
   "host_permissions": ["https://scratchpad-sync.localintelligence.dev/*"],
   "action": {

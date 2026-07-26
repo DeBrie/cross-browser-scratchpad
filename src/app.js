@@ -26,7 +26,6 @@ const elements = {
   title: document.querySelector("#note-title"),
   deleteNote: document.querySelector("#delete-note"),
   editor: document.querySelector("#editor"),
-  preview: document.querySelector("#preview"),
   context: document.querySelector("#context-label"),
   anchor: document.querySelector("#anchor-button"),
   storage: document.querySelector("#storage-status"),
@@ -45,7 +44,6 @@ const state = {
   windowId: null,
   notes: [],
   selectedId: null,
-  isEditing: false,
   saveTimer: null,
   isLoaded: false,
   vault: null,
@@ -109,23 +107,98 @@ function updateContext() {
         ? state.host || "This site"
         : "This window";
 }
-function renderBody() {
-  const note = selected();
-  elements.editor.hidden = !state.isEditing;
-  elements.preview.hidden = state.isEditing;
-  if (state.isEditing) return;
-  const rendered = renderMarkdown(note?.body || "");
-  if (!rendered) {
-    const empty = document.createElement("p");
-    empty.className = "empty-preview";
-    empty.textContent = "Nothing to preview yet.";
-    elements.preview.replaceChildren(empty);
-    return;
-  }
+function setCaretAtEnd() {
+  const range = document.createRange();
+  range.selectNodeContents(elements.editor);
+  range.collapse(false);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+function inlineMarkdownFrom(node) {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+  if (node.classList?.contains("markdown-syntax")) return "";
+  if (node.nodeName === "BR") return "\n";
+  const value = [...node.childNodes].map(inlineMarkdownFrom).join("");
+  if (node.nodeName === "STRONG" || node.nodeName === "B") return `**${value}**`;
+  if (node.nodeName === "EM" || node.nodeName === "I") return `*${value}*`;
+  if (node.nodeName === "CODE") return `\`${value}\``;
+  if (node.nodeName === "A") return `[${value}](${node.getAttribute("href")})`;
+  return value;
+}
+function markdownFromEditor() {
+  return [...elements.editor.childNodes].map((node) => {
+    const value = inlineMarkdownFrom(node);
+    if (/^H[1-3]$/.test(node.nodeName)) return `${"#".repeat(Number(node.nodeName[1]))} ${value.trim()}`;
+    if (node.nodeName === "UL" || node.nodeName === "OL") return [...node.children].map((item, index) => {
+      const task = item.querySelector("input[type=checkbox]");
+      const text = [...item.childNodes].filter((child) => child !== task).map(inlineMarkdownFrom).join("").trim();
+      const prefix = node.nodeName === "OL" ? `${index + 1}.` : "-";
+      return `${prefix} ${task ? `[${task.checked ? "x" : " "}] ` : ""}${text}`;
+    }).join("\n");
+    if (node.nodeName === "BLOCKQUOTE") return [...node.childNodes].map((child) => `> ${inlineMarkdownFrom(child)}`).join("\n");
+    if (node.nodeName === "HR") return "---";
+    if (node.nodeName === "PRE") return `\`\`\`\n${node.textContent}\n\`\`\``;
+    return value;
+  }).filter((value) => value.trim()).join("\n\n");
+}
+function renderLiveMarkdown(markdown, keepCaret = false) {
+  const rendered = renderMarkdown(markdown);
+  if (!rendered) { elements.editor.replaceChildren(); return; }
   const parsed = new DOMParser().parseFromString(rendered, "text/html");
-  elements.preview.replaceChildren(
-    ...[...parsed.body.children].map((node) => node.cloneNode(true)),
-  );
+  elements.editor.replaceChildren(...[...parsed.body.children].map((node) => node.cloneNode(true)));
+  decorateMarkdownSyntax();
+  if (keepCaret) setCaretAtEnd();
+}
+function decorateMarkdownSyntax() {
+  for (const heading of elements.editor.querySelectorAll("h1, h2, h3")) {
+    if (heading.querySelector(".markdown-syntax")) continue;
+    const syntax = document.createElement("span");
+    syntax.className = "markdown-syntax";
+    syntax.textContent = `${"#".repeat(Number(heading.nodeName[1]))} `;
+    heading.prepend(syntax);
+  }
+}
+function updateFocusedLine() {
+  for (const line of elements.editor.querySelectorAll(".is-focused-line")) line.classList.remove("is-focused-line");
+  const selection = window.getSelection();
+  if (!selection?.anchorNode || !elements.editor.contains(selection.anchorNode)) return;
+  const node = selection.anchorNode.nodeType === Node.TEXT_NODE ? selection.anchorNode.parentElement : selection.anchorNode;
+  node?.closest?.("h1, h2, h3, p, li")?.classList.add("is-focused-line");
+}
+function updateEditedNote() {
+  const note = selected();
+  if (!note) return;
+  note.body = markdownFromEditor();
+  note.updatedAt = Date.now();
+  renderList();
+  scheduleSave();
+}
+function activeEditableBlock() {
+  const node = window.getSelection()?.anchorNode;
+  const element = node?.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+  return element?.closest?.("p, div") || elements.editor;
+}
+function convertHeadingShortcut(event) {
+  if (event.key !== " ") return;
+  const block = activeEditableBlock();
+  const match = /^(#{1,3})$/.exec(block?.textContent || "");
+  if (!match) return;
+  event.preventDefault();
+  const heading = document.createElement(`h${match[1].length}`);
+  const syntax = document.createElement("span");
+  syntax.className = "markdown-syntax";
+  syntax.textContent = `${match[1]} `;
+  heading.append(syntax);
+  if (block === elements.editor) elements.editor.replaceChildren(heading); else block.replaceWith(heading);
+  const range = document.createRange();
+  range.selectNodeContents(heading);
+  range.collapse(false);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  updateFocusedLine();
+  updateEditedNote();
 }
 function renderList() {
   const filtered = searchNotes(activeNotes(), elements.search.value);
@@ -161,16 +234,14 @@ function renderWorkspace() {
   elements.title.disabled = unavailable || !note;
   elements.deleteNote.disabled = unavailable || !note;
   elements.deleteNote.hidden = unavailable || !note;
-  elements.editor.disabled = unavailable || !note;
+  elements.editor.contentEditable = unavailable || !note ? "false" : "true";
   elements.title.hidden = unavailable;
-  elements.editor.hidden = unavailable || !state.isEditing;
-  elements.preview.hidden = unavailable || state.isEditing;
+  elements.editor.hidden = unavailable;
   elements.unavailable.hidden = !unavailable;
   elements.title.value = note?.title || "";
-  elements.editor.value = note?.body || "";
   updateContext();
   updateFooter();
-  renderBody();
+  renderLiveMarkdown(note?.body || "");
 }
 function render() {
   elements.library.classList.toggle("is-collapsed", state.collapsed);
@@ -217,7 +288,6 @@ async function selectNote(id) {
   if (state.selectedId === id) return;
   await persistNow();
   state.selectedId = id;
-  state.isEditing = false;
   await saveUiState();
   render();
 }
@@ -226,7 +296,6 @@ async function createNewNote() {
   const note = createNote({ scope: state.scope, host: state.host, now });
   state.notes = [...state.notes, note];
   state.selectedId = note.id;
-  state.isEditing = true;
   await saveUiState();
   await persistNow();
   render();
@@ -237,7 +306,6 @@ async function deleteSelectedNote() {
   if (!note || !window.confirm(`Delete “${note.title || "Untitled note"}”?`)) return;
   state.notes = deleteNote(state.notes, note.id);
   state.selectedId = activeNotes()[0]?.id ?? null;
-  state.isEditing = false;
   await saveNotes(state.scope, context(), state.notes);
   if (state.vault && state.scope !== "ephemeral") await syncNotes(state.vault, state.vault.token);
   await saveUiState();
@@ -247,7 +315,6 @@ async function deleteSelectedNote() {
 async function loadScope(scope) {
   if (state.isLoaded) await persistNow();
   state.scope = scope;
-  state.isEditing = false;
   const key = uiScopeKey(state.windowId);
   if (key) await chrome.storage.session.set({ [key]: scope });
   state.notes =
@@ -290,26 +357,23 @@ elements.collapse.addEventListener("click", async () => {
   await saveUiState();
   render();
 });
-for (const field of [elements.title, elements.editor])
-  field.addEventListener("input", () => {
-    const note = selected();
-    if (!note) return;
-    note[field === elements.title ? "title" : "body"] = field.value;
-    note.updatedAt = Date.now();
-    renderList();
-    scheduleSave();
-  });
-elements.editor.addEventListener("focus", () => {
-  if (!state.isEditing) { state.isEditing = true; renderBody(); }
+elements.title.addEventListener("input", () => {
+  const note = selected();
+  if (!note) return;
+  note.title = elements.title.value;
+  note.updatedAt = Date.now();
+  renderList();
+  scheduleSave();
 });
+elements.editor.addEventListener("input", () => {
+  updateEditedNote();
+});
+elements.editor.addEventListener("keydown", convertHeadingShortcut);
+elements.editor.addEventListener("focus", updateFocusedLine);
 elements.editor.addEventListener("blur", () => {
-  if (state.isEditing) { state.isEditing = false; renderBody(); }
+  for (const line of elements.editor.querySelectorAll(".is-focused-line")) line.classList.remove("is-focused-line");
 });
-elements.preview.addEventListener("click", () => {
-  state.isEditing = true;
-  renderBody();
-  elements.editor.focus();
-});
+document.addEventListener("selectionchange", updateFocusedLine);
 elements.anchor.addEventListener("click", async () => {
   try {
     await openScratchpadSidebar(state.windowId, globalThis.browser ?? chrome);

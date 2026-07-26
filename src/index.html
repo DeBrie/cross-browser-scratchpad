@@ -74,17 +74,7 @@
             autocomplete="off"
           /><button id="delete-note" class="delete-note" type="button" title="Delete note" aria-label="Delete note">⌫</button></div>
           <label class="sr-only" for="editor">Markdown note</label
-          ><textarea
-            id="editor"
-            spellcheck="true"
-            placeholder="Start writing…"
-          ></textarea>
-          <article
-            id="preview"
-            class="markdown-preview"
-            hidden
-            aria-live="polite"
-          ></article>
+          ><div id="editor" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" data-placeholder="Start writing…"></div>
           <p id="site-unavailable" class="site-unavailable" hidden>
             This site doesn’t have a web address to attach a note to.
           </p>

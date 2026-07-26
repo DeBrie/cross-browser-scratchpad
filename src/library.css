@@ -24,3 +24,19 @@
 .markdown-preview {
   cursor: text;
 }
+
+#editor:empty::before {
+  content: attr(data-placeholder);
+  color: #aaa49a;
+}
+
+#editor > :first-child { margin-top: 0; }
+#editor h1, #editor h2, #editor h3 { color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: -.6px; line-height: 1.25; }
+#editor h1 { font-size: 26px; }
+#editor h2 { font-size: 21px; }
+#editor h3 { font-size: 17px; }
+#editor code { padding: 2px 4px; border-radius: 4px; background: #ece8df; font: .88em ui-monospace, monospace; }
+#editor a { color: #be5636; }
+
+.markdown-syntax { display: none; color: #908a80; font: inherit; }
+.is-focused-line > .markdown-syntax { display: inline; }
