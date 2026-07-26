@@ -7,7 +7,7 @@
   "host_permissions": ["https://scratchpad-sync.localintelligence.dev/*"],
   "action": {
     "default_title": "Open Scratchpad",
-    "default_popup": "src/index.html",
+    "default_popup": "src/index.html?surface=popup",
     "default_icon": { "16": "assets/icon-16.png", "32": "assets/icon-32.png", "48": "assets/icon-48.png", "128": "assets/icon-128.png" }
   },
   "icons": { "16": "assets/icon-16.png", "32": "assets/icon-32.png", "48": "assets/icon-48.png", "128": "assets/icon-128.png" },
@@ -16,6 +16,6 @@
     "type": "module"
   },
   "side_panel": {
-    "default_path": "src/index.html"
+    "default_path": "src/index.html?surface=side-panel"
   }
 }

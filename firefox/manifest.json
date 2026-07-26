@@ -6,8 +6,8 @@
   "permissions": ["storage", "tabs"],
   "host_permissions": ["https://scratchpad-sync.localintelligence.dev/*"],
   "background": { "scripts": ["firefox/background.js"] },
-  "action": { "default_popup": "src/index.html", "default_icon": { "16": "assets/icon-16.png", "32": "assets/icon-32.png", "48": "assets/icon-48.png", "128": "assets/icon-128.png" } },
-  "sidebar_action": { "default_panel": "src/index.html", "default_title": "Cross-Browser Scratchpad", "default_icon": { "16": "assets/icon-16.png", "32": "assets/icon-32.png", "48": "assets/icon-48.png", "128": "assets/icon-128.png" } },
+  "action": { "default_popup": "src/index.html?surface=popup", "default_icon": { "16": "assets/icon-16.png", "32": "assets/icon-32.png", "48": "assets/icon-48.png", "128": "assets/icon-128.png" } },
+  "sidebar_action": { "default_panel": "src/index.html?surface=sidebar", "default_title": "Cross-Browser Scratchpad", "default_icon": { "16": "assets/icon-16.png", "32": "assets/icon-32.png", "48": "assets/icon-48.png", "128": "assets/icon-128.png" } },
   "icons": { "16": "assets/icon-16.png", "32": "assets/icon-32.png", "48": "assets/icon-48.png", "128": "assets/icon-128.png" },
   "browser_specific_settings": { "gecko": { "id": "cross-browser-scratchpad@localintelligence.dev", "strict_min_version": "142.0", "data_collection_permissions": { "required": ["none"], "optional": ["personallyIdentifyingInfo", "authenticationInfo", "personalCommunications", "browsingActivity"] } } }
 }

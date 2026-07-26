@@ -6,7 +6,7 @@
     "prepare:vendor": "node scripts/prepare-vendor.mjs",
     "pretest": "npm run prepare:vendor",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check src/app.js && node --check src/background.js && node --check src/browser-context.js && node --check src/note-store.js && node --check src/crypto.js && node --check src/sync-client.js && node --check src/sidebar.js && node --check src/firefox-consent.js",
+    "check": "node --check src/app.js && node --check src/background.js && node --check src/browser-context.js && node --check src/surface.js && node --check src/note-store.js && node --check src/crypto.js && node --check src/sync-client.js && node --check src/sidebar.js && node --check src/firefox-consent.js",
     "package:firefox": "npm run prepare:vendor && node scripts/package-firefox.mjs",
     "package:source": "node scripts/package-source.mjs"
   },

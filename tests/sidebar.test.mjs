@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isScratchpadSidebarOpen, openScratchpadSidebar } from '../src/sidebar.js';
+import {
+  isScratchpadSidebarOpen,
+  openScratchpadSidebar,
+  registerScratchpadSidebar,
+} from '../src/sidebar.js';
 
 test('opens Chrome side panel for the active browser window', async () => {
   let received;
@@ -14,7 +18,7 @@ test('opens Firefox sidebar when the Chrome side-panel API is unavailable', asyn
   assert.equal(opened, true);
 });
 
-test('recognises an open Chrome side panel for this window and document', async () => {
+test('recognises an open Chrome side panel for this window', async () => {
   let received;
   const open = await isScratchpadSidebarOpen(73, {
     runtime: {
@@ -24,14 +28,40 @@ test('recognises an open Chrome side panel for this window and document', async 
       },
     },
     sidePanel: {},
-  }, 'chrome-extension://example/src/index.html');
+  });
 
   assert.equal(open, true);
   assert.deepEqual(received, {
     contextTypes: ['SIDE_PANEL'],
-    documentUrls: ['chrome-extension://example/src/index.html'],
     windowIds: [73],
   });
+});
+
+test('uses a live side-panel handshake before Chrome context enumeration', async () => {
+  let listener;
+  let removed;
+  let contextLookups = 0;
+  const runtime = {
+    onMessage: {
+      addListener: (nextListener) => { listener = nextListener; },
+      removeListener: (nextListener) => { removed = nextListener; },
+    },
+    sendMessage: async (message) => {
+      let response;
+      listener(message, {}, (value) => { response = value; });
+      return response;
+    },
+    getContexts: async () => {
+      contextLookups += 1;
+      return [];
+    },
+  };
+  const stop = registerScratchpadSidebar(73, { runtime });
+
+  assert.equal(await isScratchpadSidebarOpen(73, { runtime, sidePanel: {} }), true);
+  assert.equal(contextLookups, 0);
+  stop();
+  assert.equal(removed, listener);
 });
 
 test('recognises Firefox’s unpinned and open sidebar states', async () => {

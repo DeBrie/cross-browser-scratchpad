@@ -8,13 +8,21 @@ import {
   uiLibraryKey,
   uiScopeKey,
 } from "./note-store.js";
-import { getBrowserContext } from "./browser-context.js";
+import { getBrowserContext, watchBrowserContext } from "./browser-context.js";
 import { restoreSession, signIn, signUp, syncNotes } from "./sync-client.js";
-import { isScratchpadSidebarOpen, openScratchpadSidebar } from "./sidebar.js";
+import {
+  isScratchpadSidebarOpen,
+  openScratchpadSidebar,
+  registerScratchpadSidebar,
+} from "./sidebar.js";
 import { requestFirefoxSyncConsent } from "./firefox-consent.js";
+import { scratchpadSurface } from "./surface.js";
 
 const SAVE_DELAY = 350;
 let instantEditor = null;
+let stopBrowserContextWatcher = () => {};
+let stopSidebarPresence = () => {};
+let contextChangeQueue = Promise.resolve();
 const elements = {
   tabs: [...document.querySelectorAll(".tab")],
   library: document.querySelector("#library"),
@@ -39,6 +47,8 @@ const elements = {
   password: document.querySelector("#sync-password"),
   error: document.querySelector("#sync-error"),
 };
+const surface = scratchpadSurface(location.href);
+elements.anchor.hidden = surface !== "popup";
 const state = {
   scope: "global",
   host: null,
@@ -257,8 +267,8 @@ async function deleteSelectedNote() {
   render();
   if (state.selectedId) instantEditor?.focus();
 }
-async function loadScope(scope) {
-  if (state.isLoaded) await persistNow();
+async function loadScope(scope, { persist = true } = {}) {
+  if (state.isLoaded && persist) await persistNow();
   state.scope = scope;
   const key = uiScopeKey(state.windowId);
   if (key) await chrome.storage.session.set({ [key]: scope });
@@ -282,11 +292,35 @@ async function loadScope(scope) {
   else if (state.selectedId) instantEditor?.focus();
 }
 async function updateAnchorVisibility() {
+  if (surface !== "popup") {
+    elements.anchor.hidden = true;
+    return;
+  }
   elements.anchor.hidden = await isScratchpadSidebarOpen(
     state.windowId,
     globalThis.browser ?? chrome,
-    location.href,
   );
+}
+async function applyBrowserContext(nextContext) {
+  if (
+    nextContext.windowId === state.windowId &&
+    nextContext.host === state.host
+  )
+    return;
+  if (state.isLoaded) await persistNow();
+  state.windowId = nextContext.windowId;
+  state.host = nextContext.host;
+  if (state.isLoaded && state.scope === "site")
+    await loadScope("site", { persist: false });
+  else if (state.isLoaded) render();
+}
+function queueBrowserContextChange(nextContext) {
+  contextChangeQueue = contextChangeQueue
+    .then(() => applyBrowserContext(nextContext))
+    .catch((error) => {
+      console.error("Unable to follow active tab", error);
+    });
+  return contextChangeQueue;
 }
 
 elements.tabs.forEach((tab) =>
@@ -342,12 +376,21 @@ elements.form.addEventListener("submit", async (event) => {
     elements.error.textContent = error.message;
   }
 });
-window.addEventListener("pagehide", () => persistNow());
+window.addEventListener("pagehide", () => {
+  stopBrowserContextWatcher();
+  stopSidebarPresence();
+  persistNow();
+});
 initialiseEditor();
 getBrowserContext(globalThis.browser ?? chrome)
   .then(async ({ windowId, host }) => {
     state.windowId = windowId;
     state.host = host;
+    if (surface === "side-panel")
+      stopSidebarPresence = registerScratchpadSidebar(
+        windowId,
+        globalThis.browser ?? chrome,
+      );
     await updateAnchorVisibility();
     state.vault = await restoreSession();
     if (state.vault)
@@ -362,6 +405,11 @@ getBrowserContext(globalThis.browser ?? chrome)
       ["global", "site", "ephemeral"].includes(savedScope)
         ? savedScope
         : "global",
+    );
+    stopBrowserContextWatcher = watchBrowserContext(
+      state.windowId,
+      globalThis.browser ?? chrome,
+      queueBrowserContextChange,
     );
   })
   .catch((error) => {
