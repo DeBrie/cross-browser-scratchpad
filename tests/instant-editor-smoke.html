@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../src/vendor/vditor/dist/index.css" />
+  </head>
+  <body>
+    <div id="editor"></div>
+    <script src="../src/vendor/vditor/dist/index.min.js"></script>
+    <script>
+      const base = new URL('../src/vendor/vditor', location.href).href;
+      const markdown = '# Heading\n\n- [ ] Keep whitespace\n- **Bold** and `code`';
+      const editor = new Vditor('editor', {
+        mode: 'ir',
+        cache: { enable: false },
+        cdn: base,
+        lang: 'en_US',
+        toolbar: [],
+        value: markdown,
+        after() {
+          const rendered = editor.getHTML();
+          document.body.dataset.ready = 'true';
+          document.body.dataset.mode = editor.getCurrentMode();
+          document.body.dataset.value = btoa(editor.getValue());
+          document.body.dataset.headingRendered = String(/<h1[^>]*>Heading<\/h1>/.test(rendered));
+          document.body.dataset.taskRendered = String(/type="checkbox"/.test(rendered));
+          document.body.dataset.noNetwork = String(![...document.scripts].some((script) => /^https?:/.test(script.src)));
+        },
+      });
+    </script>
+  </body>
+</html>

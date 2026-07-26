@@ -1,4 +1,3 @@
-import { renderMarkdown } from "./markdown.js";
 import {
   createNote,
   deleteNote,
@@ -15,6 +14,7 @@ import { openScratchpadSidebar } from "./sidebar.js";
 import { requestFirefoxSyncConsent } from "./firefox-consent.js";
 
 const SAVE_DELAY = 350;
+let instantEditor = null;
 const elements = {
   tabs: [...document.querySelectorAll(".tab")],
   library: document.querySelector("#library"),
@@ -49,6 +49,8 @@ const state = {
   vault: null,
   syncMerged: false,
   collapsed: false,
+  editorReady: false,
+  applyingEditorValue: false,
 };
 const context = () => ({ host: state.host, windowId: state.windowId });
 const selectionScope = () =>
@@ -107,98 +109,37 @@ function updateContext() {
         ? state.host || "This site"
         : "This window";
 }
-function setCaretAtEnd() {
-  const range = document.createRange();
-  range.selectNodeContents(elements.editor);
-  range.collapse(false);
-  const selection = window.getSelection();
-  selection.removeAllRanges();
-  selection.addRange(range);
-}
-function inlineMarkdownFrom(node) {
-  if (node.nodeType === Node.TEXT_NODE) return node.textContent;
-  if (node.classList?.contains("markdown-syntax")) return "";
-  if (node.nodeName === "BR") return "\n";
-  const value = [...node.childNodes].map(inlineMarkdownFrom).join("");
-  if (node.nodeName === "STRONG" || node.nodeName === "B") return `**${value}**`;
-  if (node.nodeName === "EM" || node.nodeName === "I") return `*${value}*`;
-  if (node.nodeName === "CODE") return `\`${value}\``;
-  if (node.nodeName === "A") return `[${value}](${node.getAttribute("href")})`;
-  return value;
-}
-function markdownFromEditor() {
-  return [...elements.editor.childNodes].map((node) => {
-    const value = inlineMarkdownFrom(node);
-    if (/^H[1-3]$/.test(node.nodeName)) return `${"#".repeat(Number(node.nodeName[1]))} ${value.trim()}`;
-    if (node.nodeName === "UL" || node.nodeName === "OL") return [...node.children].map((item, index) => {
-      const task = item.querySelector("input[type=checkbox]");
-      const text = [...item.childNodes].filter((child) => child !== task).map(inlineMarkdownFrom).join("").trim();
-      const prefix = node.nodeName === "OL" ? `${index + 1}.` : "-";
-      return `${prefix} ${task ? `[${task.checked ? "x" : " "}] ` : ""}${text}`;
-    }).join("\n");
-    if (node.nodeName === "BLOCKQUOTE") return [...node.childNodes].map((child) => `> ${inlineMarkdownFrom(child)}`).join("\n");
-    if (node.nodeName === "HR") return "---";
-    if (node.nodeName === "PRE") return `\`\`\`\n${node.textContent}\n\`\`\``;
-    return value;
-  }).filter((value) => value.trim()).join("\n\n");
-}
-function renderLiveMarkdown(markdown, keepCaret = false) {
-  const rendered = renderMarkdown(markdown);
-  if (!rendered) { elements.editor.replaceChildren(); return; }
-  const parsed = new DOMParser().parseFromString(rendered, "text/html");
-  elements.editor.replaceChildren(...[...parsed.body.children].map((node) => node.cloneNode(true)));
-  decorateMarkdownSyntax();
-  if (keepCaret) setCaretAtEnd();
-}
-function decorateMarkdownSyntax() {
-  for (const heading of elements.editor.querySelectorAll("h1, h2, h3")) {
-    if (heading.querySelector(".markdown-syntax")) continue;
-    const syntax = document.createElement("span");
-    syntax.className = "markdown-syntax";
-    syntax.textContent = `${"#".repeat(Number(heading.nodeName[1]))} `;
-    heading.prepend(syntax);
-  }
-}
-function updateFocusedLine() {
-  for (const line of elements.editor.querySelectorAll(".is-focused-line")) line.classList.remove("is-focused-line");
-  const selection = window.getSelection();
-  if (!selection?.anchorNode || !elements.editor.contains(selection.anchorNode)) return;
-  const node = selection.anchorNode.nodeType === Node.TEXT_NODE ? selection.anchorNode.parentElement : selection.anchorNode;
-  node?.closest?.("h1, h2, h3, p, li")?.classList.add("is-focused-line");
-}
 function updateEditedNote() {
   const note = selected();
   if (!note) return;
-  note.body = markdownFromEditor();
+  note.body = instantEditor?.getValue() ?? "";
   note.updatedAt = Date.now();
   renderList();
   scheduleSave();
 }
-function activeEditableBlock() {
-  const node = window.getSelection()?.anchorNode;
-  const element = node?.nodeType === Node.TEXT_NODE ? node.parentElement : node;
-  return element?.closest?.("p, div") || elements.editor;
+function setEditorValue(value) {
+  if (!state.editorReady || !instantEditor) return;
+  state.applyingEditorValue = true;
+  instantEditor.setValue(value, true);
+  state.applyingEditorValue = false;
 }
-function convertHeadingShortcut(event) {
-  if (event.key !== " ") return;
-  const block = activeEditableBlock();
-  const match = /^(#{1,3})$/.exec(block?.textContent || "");
-  if (!match) return;
-  event.preventDefault();
-  const heading = document.createElement(`h${match[1].length}`);
-  const syntax = document.createElement("span");
-  syntax.className = "markdown-syntax";
-  syntax.textContent = `${match[1]} `;
-  heading.append(syntax);
-  if (block === elements.editor) elements.editor.replaceChildren(heading); else block.replaceWith(heading);
-  const range = document.createRange();
-  range.selectNodeContents(heading);
-  range.collapse(false);
-  const selection = window.getSelection();
-  selection.removeAllRanges();
-  selection.addRange(range);
-  updateFocusedLine();
-  updateEditedNote();
+function initialiseEditor() {
+  instantEditor = new Vditor("editor", {
+    mode: "ir",
+    cache: { enable: false },
+    cdn: new URL("./vendor/vditor", import.meta.url).href,
+    lang: "en_US",
+    toolbar: [],
+    minHeight: 0,
+    placeholder: "Start writing…",
+    input: () => {
+      if (!state.applyingEditorValue) updateEditedNote();
+    },
+    after: () => {
+      state.editorReady = true;
+      setEditorValue(selected()?.body ?? "");
+    },
+  });
 }
 function renderList() {
   const filtered = searchNotes(activeNotes(), elements.search.value);
@@ -234,14 +175,15 @@ function renderWorkspace() {
   elements.title.disabled = unavailable || !note;
   elements.deleteNote.disabled = unavailable || !note;
   elements.deleteNote.hidden = unavailable || !note;
-  elements.editor.contentEditable = unavailable || !note ? "false" : "true";
+  if (unavailable || !note) instantEditor?.disabled();
+  else instantEditor?.enable();
   elements.title.hidden = unavailable;
   elements.editor.hidden = unavailable;
   elements.unavailable.hidden = !unavailable;
   elements.title.value = note?.title || "";
   updateContext();
   updateFooter();
-  renderLiveMarkdown(note?.body || "");
+  setEditorValue(note?.body || "");
 }
 function render() {
   elements.library.classList.toggle("is-collapsed", state.collapsed);
@@ -310,7 +252,7 @@ async function deleteSelectedNote() {
   if (state.vault && state.scope !== "ephemeral") await syncNotes(state.vault, state.vault.token);
   await saveUiState();
   render();
-  if (state.selectedId) elements.editor.focus();
+  if (state.selectedId) instantEditor?.focus();
 }
 async function loadScope(scope) {
   if (state.isLoaded) await persistNow();
@@ -334,7 +276,7 @@ async function loadScope(scope) {
   render();
   if (!state.selectedId && !(state.scope === "site" && !state.host))
     await createNewNote();
-  else if (state.selectedId) elements.editor.focus();
+  else if (state.selectedId) instantEditor?.focus();
 }
 async function getBrowserContext() {
   const [tab] = await chrome.tabs.query({
@@ -365,15 +307,6 @@ elements.title.addEventListener("input", () => {
   renderList();
   scheduleSave();
 });
-elements.editor.addEventListener("input", () => {
-  updateEditedNote();
-});
-elements.editor.addEventListener("keydown", convertHeadingShortcut);
-elements.editor.addEventListener("focus", updateFocusedLine);
-elements.editor.addEventListener("blur", () => {
-  for (const line of elements.editor.querySelectorAll(".is-focused-line")) line.classList.remove("is-focused-line");
-});
-document.addEventListener("selectionchange", updateFocusedLine);
 elements.anchor.addEventListener("click", async () => {
   try {
     await openScratchpadSidebar(state.windowId, globalThis.browser ?? chrome);
@@ -407,6 +340,7 @@ elements.form.addEventListener("submit", async (event) => {
   }
 });
 window.addEventListener("pagehide", () => persistNow());
+initialiseEditor();
 getBrowserContext()
   .then(async () => {
     state.vault = await restoreSession();

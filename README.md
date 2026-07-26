@@ -11,8 +11,9 @@ The optional sync service is available at `scratchpad-sync.localintelligence.dev
 1. Open `chrome://extensions`.
 2. Enable **Developer mode** in the top-right corner.
 3. Choose **Load unpacked**.
-4. Select the cloned repository folder.
-5. Pin Scratchpad and click its toolbar button to write.
+4. Run `npm ci && npm run prepare:vendor` in the cloned repository folder.
+5. Select the cloned repository folder.
+6. Pin Scratchpad and click its toolbar button to write.
 
 Or download `chrome-scratchpad-extension.zip` from a GitHub release, extract it, and select the extracted folder.
 
@@ -21,13 +22,13 @@ Or download `chrome-scratchpad-extension.zip` from a GitHub release, extract it,
 - **All notes** persists across every page.
 - **This site** persists separately for each website hostname.
 - **Ephemeral** lasts only for the current Chrome window and is removed when that window closes.
-- Use **Preview** to read rendered Markdown, or **📌** to open the same workspace in Chrome's side panel.
+- Markdown renders inline as you write, with the active line remaining editable. Use **📌** to open the same workspace in Chrome's side panel.
 - **Sync** is optional. Use **🔒** to create an account or sign in; global and site notes are encrypted in the extension before crossing to the sync service. Ephemeral notes never leave the current browser window.
 - When two browsers have divergent notes on first sync, Scratchpad preserves both as Markdown sections instead of silently discarding either copy.
 
 ## Firefox
 
-Run `npm run package:firefox`, then load `dist/firefox/manifest.json` temporarily from `about:debugging#/runtime/this-firefox`. Release ZIPs are also attached to GitHub releases. The same optional encrypted sync account works in both browser builds.
+Run `npm run package:firefox`, then load `dist/firefox/manifest.json` temporarily from `about:debugging#/runtime/this-firefox`. Release ZIPs are also attached to GitHub releases. The same optional encrypted sync account works in both browser builds. The bundled editor runs entirely from the extension package and does not load a CDN.
 
 ## Releases and CI
 

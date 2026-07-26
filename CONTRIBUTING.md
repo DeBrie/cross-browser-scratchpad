@@ -8,6 +8,7 @@ Use Node.js 22 or newer.
 
 ```sh
 npm ci
+npm run prepare:vendor
 npm test
 npm run check
 npm run package:firefox
