@@ -28,4 +28,4 @@ jobs:
           name: browser-extensions
           path: |
             chrome-scratchpad-extension.zip
-            scratchpad-firefox.zip
+            dist/scratchpad-firefox.zip

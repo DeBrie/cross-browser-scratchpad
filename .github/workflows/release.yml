@@ -26,4 +26,4 @@ jobs:
           generate_release_notes: true
           files: |
             chrome-scratchpad-extension.zip
-            scratchpad-firefox.zip
+            dist/scratchpad-firefox.zip
