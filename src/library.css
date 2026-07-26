@@ -20,3 +20,7 @@
   background: #f1ece5;
   color: var(--red);
 }
+
+.markdown-preview {
+  cursor: text;
+}

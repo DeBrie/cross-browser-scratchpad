@@ -28,7 +28,6 @@ const elements = {
   editor: document.querySelector("#editor"),
   preview: document.querySelector("#preview"),
   context: document.querySelector("#context-label"),
-  mode: document.querySelector("#mode-button"),
   anchor: document.querySelector("#anchor-button"),
   storage: document.querySelector("#storage-status"),
   save: document.querySelector("#save-status"),
@@ -46,7 +45,7 @@ const state = {
   windowId: null,
   notes: [],
   selectedId: null,
-  isPreview: false,
+  isEditing: false,
   saveTimer: null,
   isLoaded: false,
   vault: null,
@@ -110,12 +109,11 @@ function updateContext() {
         ? state.host || "This site"
         : "This window";
 }
-function updateMode() {
+function renderBody() {
   const note = selected();
-  elements.editor.hidden = state.isPreview;
-  elements.preview.hidden = !state.isPreview;
-  elements.mode.textContent = state.isPreview ? "Edit" : "Preview";
-  if (!state.isPreview) return;
+  elements.editor.hidden = !state.isEditing;
+  elements.preview.hidden = state.isEditing;
+  if (state.isEditing) return;
   const rendered = renderMarkdown(note?.body || "");
   if (!rendered) {
     const empty = document.createElement("p");
@@ -165,15 +163,14 @@ function renderWorkspace() {
   elements.deleteNote.hidden = unavailable || !note;
   elements.editor.disabled = unavailable || !note;
   elements.title.hidden = unavailable;
-  elements.editor.hidden = unavailable || state.isPreview;
-  elements.preview.hidden = unavailable || !state.isPreview;
+  elements.editor.hidden = unavailable || !state.isEditing;
+  elements.preview.hidden = unavailable || state.isEditing;
   elements.unavailable.hidden = !unavailable;
-  elements.mode.hidden = unavailable;
   elements.title.value = note?.title || "";
   elements.editor.value = note?.body || "";
   updateContext();
   updateFooter();
-  updateMode();
+  renderBody();
 }
 function render() {
   elements.library.classList.toggle("is-collapsed", state.collapsed);
@@ -220,17 +217,16 @@ async function selectNote(id) {
   if (state.selectedId === id) return;
   await persistNow();
   state.selectedId = id;
-  state.isPreview = false;
+  state.isEditing = false;
   await saveUiState();
   render();
-  elements.editor.focus();
 }
 async function createNewNote() {
   const now = Date.now();
   const note = createNote({ scope: state.scope, host: state.host, now });
   state.notes = [...state.notes, note];
   state.selectedId = note.id;
-  state.isPreview = false;
+  state.isEditing = true;
   await saveUiState();
   await persistNow();
   render();
@@ -241,7 +237,7 @@ async function deleteSelectedNote() {
   if (!note || !window.confirm(`Delete “${note.title || "Untitled note"}”?`)) return;
   state.notes = deleteNote(state.notes, note.id);
   state.selectedId = activeNotes()[0]?.id ?? null;
-  state.isPreview = false;
+  state.isEditing = false;
   await saveNotes(state.scope, context(), state.notes);
   if (state.vault && state.scope !== "ephemeral") await syncNotes(state.vault, state.vault.token);
   await saveUiState();
@@ -251,7 +247,7 @@ async function deleteSelectedNote() {
 async function loadScope(scope) {
   if (state.isLoaded) await persistNow();
   state.scope = scope;
-  state.isPreview = false;
+  state.isEditing = false;
   const key = uiScopeKey(state.windowId);
   if (key) await chrome.storage.session.set({ [key]: scope });
   state.notes =
@@ -303,9 +299,16 @@ for (const field of [elements.title, elements.editor])
     renderList();
     scheduleSave();
   });
-elements.mode.addEventListener("click", () => {
-  state.isPreview = !state.isPreview;
-  updateMode();
+elements.editor.addEventListener("focus", () => {
+  if (!state.isEditing) { state.isEditing = true; renderBody(); }
+});
+elements.editor.addEventListener("blur", () => {
+  if (state.isEditing) { state.isEditing = false; renderBody(); }
+});
+elements.preview.addEventListener("click", () => {
+  state.isEditing = true;
+  renderBody();
+  elements.editor.focus();
 });
 elements.anchor.addEventListener("click", async () => {
   try {
