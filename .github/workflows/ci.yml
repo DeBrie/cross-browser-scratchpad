@@ -12,8 +12,8 @@ jobs:
   verify-and-package:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -23,7 +23,7 @@ jobs:
       - run: npm run package:firefox
       - name: Package Chrome extension
         run: zip -r chrome-scratchpad-extension.zip manifest.json src assets README.md PRIVACY.md package.json LICENSE -x '*.DS_Store'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: browser-extensions
           path: |
