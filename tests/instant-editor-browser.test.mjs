@@ -7,13 +7,30 @@ import { promisify } from 'node:util';
 import test from 'node:test';
 
 const run = promisify(execFile);
-const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+
+function resolveChromeExecutable(platform = process.platform, env = process.env) {
+  if (env.CHROME_BIN) return env.CHROME_BIN;
+  return platform === 'darwin'
+    ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+    : 'google-chrome';
+}
+
+test('uses Chrome from PATH on Linux CI runners', () => {
+  assert.equal(resolveChromeExecutable('linux', {}), 'google-chrome');
+});
+
+test('honours an explicit Chrome executable override', () => {
+  assert.equal(
+    resolveChromeExecutable('linux', { CHROME_BIN: '/opt/chrome-for-testing' }),
+    '/opt/chrome-for-testing',
+  );
+});
 
 test('the bundled editor starts in instant-render mode without a network CDN', async () => {
   const profile = await mkdtemp(join(tmpdir(), 'scratchpad-editor-test-'));
   const page = new URL('./instant-editor-smoke.html', import.meta.url).href;
   try {
-    const { stdout } = await run(chrome, [
+    const { stdout } = await run(resolveChromeExecutable(), [
       '--headless=new',
       '--disable-gpu',
       '--no-first-run',
