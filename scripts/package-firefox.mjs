@@ -1,5 +1,6 @@
 import { cp, mkdir, rm } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const output = new URL('../dist/firefox/', import.meta.url);
 const archive = new URL('../dist/scratchpad-firefox.zip', import.meta.url);
@@ -15,4 +16,4 @@ await cp(new URL('../src/', import.meta.url), new URL('src/', output), {
 });
 await rm(new URL('src/background.js', output), { force: true });
 await cp(new URL('../assets/', import.meta.url), new URL('assets/', output), { recursive: true });
-execFileSync('zip', ['-rq', archive.pathname, '.'], { cwd: output.pathname });
+execFileSync('zip', ['-rq', fileURLToPath(archive), '.'], { cwd: fileURLToPath(output) });

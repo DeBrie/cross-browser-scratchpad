@@ -58,3 +58,37 @@ test('the bundled editor starts in instant-render mode without a network CDN', a
     await rm(profile, { recursive: true, force: true });
   }
 });
+
+for (const [surface, width, height] of [
+  ['popup', 380, 520],
+  ['sidebar', 760, 720],
+]) {
+  test(`a long note scrolls inside the ${surface} without clipping the footer`, async () => {
+    const profile = await mkdtemp(join(tmpdir(), `scratchpad-${surface}-layout-test-`));
+    const pageUrl = new URL('./long-note-layout.html', import.meta.url);
+    pageUrl.searchParams.set('width', width);
+    pageUrl.searchParams.set('height', height);
+    try {
+      const { stdout } = await run(resolveChromeExecutable(), [
+        '--headless=new',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-default-browser-check',
+        `--user-data-dir=${profile}`,
+        '--allow-file-access-from-files',
+        '--window-size=900,900',
+        '--virtual-time-budget=5000',
+        '--dump-dom',
+        pageUrl.href,
+      ], { timeout: 15_000 });
+      assert.match(stdout, /data-ready="true"/);
+      assert.match(stdout, /data-footer-visible="true"/);
+      assert.match(stdout, /data-document-overflows="false"/);
+      assert.match(stdout, /data-editor-scrolls="true"/);
+      assert.match(stdout, /data-editor-clear-of-footer="true"/);
+      assert.match(stdout, /data-horizontal-overflow="false"/);
+    } finally {
+      await rm(profile, { recursive: true, force: true });
+    }
+  });
+}

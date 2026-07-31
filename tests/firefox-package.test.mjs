@@ -16,3 +16,9 @@ test('Firefox packaging writes the release archive to dist', async () => {
   const script = await readFile(new URL('../scripts/package-firefox.mjs', import.meta.url), 'utf8');
   assert.match(script, /new URL\('\.\.\/dist\/scratchpad-firefox\.zip', import\.meta\.url\)/);
 });
+
+test('Firefox packaging supports repository paths containing spaces', async () => {
+  const script = await readFile(new URL('../scripts/package-firefox.mjs', import.meta.url), 'utf8');
+  assert.match(script, /fileURLToPath/);
+  assert.doesNotMatch(script, /\.pathname/);
+});

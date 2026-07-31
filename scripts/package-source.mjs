@@ -1,5 +1,6 @@
 import { cp, mkdir, rm } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const output = new URL('../dist/source/', import.meta.url);
 const archive = new URL('../dist/cross-browser-scratchpad-source.zip', import.meta.url);
@@ -30,4 +31,4 @@ await cp(new URL('src/', root), new URL('src/', output), {
   recursive: true,
   filter: (source) => !/[\\/]vendor(?:[\\/]|$)/.test(String(source)),
 });
-execFileSync('zip', ['-rq', archive.pathname, '.'], { cwd: output.pathname });
+execFileSync('zip', ['-rq', fileURLToPath(archive), '.'], { cwd: fileURLToPath(output) });

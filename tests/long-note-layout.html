@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../src/styles.css" />
+    <link rel="stylesheet" href="../src/library.css" />
+    <link rel="stylesheet" href="../src/vendor/vditor/dist/index.css" />
+  </head>
+  <body>
+    <main class="scratchpad">
+      <header class="toolbar">
+        <span class="mark">✦</span>
+        <nav class="note-tabs">
+          <button class="tab is-active">All notes</button>
+          <button class="tab">This site</button>
+          <button class="tab">Ephemeral</button>
+        </nav>
+      </header>
+      <section class="library-shell">
+        <aside class="library">
+          <button class="new-note">+ New note</button>
+          <label class="search"><input placeholder="Search notes" /></label>
+          <p class="library-title">All notes</p>
+          <div class="note-list">
+            <button class="note-row is-active">
+              <strong>Long layout regression note</strong>
+              <span>250 sections of Markdown</span>
+            </button>
+          </div>
+          <footer class="library-footer">
+            <button class="collapse-library">‹ <span class="collapse-label">Collapse library</span></button>
+          </footer>
+        </aside>
+        <article class="workspace">
+          <div class="context-row"><span>Available everywhere</span></div>
+          <div class="note-heading">
+            <input class="note-title" value="Long layout regression note" />
+          </div>
+          <div id="editor"></div>
+        </article>
+      </section>
+      <footer class="status-bar">
+        <span class="storage-status">Stored locally</span>
+        <span class="save-status"><span class="status-dot"></span>Saved just now</span>
+      </footer>
+    </main>
+    <script src="../src/vendor/vditor/dist/index.min.js"></script>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const scratchpad = document.querySelector('.scratchpad');
+      scratchpad.style.width = `${params.get('width')}px`;
+      scratchpad.style.height = `${params.get('height')}px`;
+      scratchpad.style.minHeight = `${params.get('height')}px`;
+      const base = new URL('../src/vendor/vditor', location.href).href;
+      const markdown = Array.from({ length: 250 }, (_, index) =>
+        `## Section ${index + 1}\n\nA deliberately long paragraph verifies that Markdown wraps inside the editor while the note scrolls independently and the status footer remains visible at every supported Scratchpad size.`,
+      ).join('\n\n');
+
+      const editor = new Vditor('editor', {
+        mode: 'ir',
+        cache: { enable: false },
+        cdn: base,
+        lang: 'en_US',
+        toolbar: [],
+        icon: '',
+        width: '100%',
+        value: markdown,
+        after() {
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const shell = document.querySelector('.scratchpad');
+            const shellRect = shell.getBoundingClientRect();
+            const footer = document.querySelector('.status-bar').getBoundingClientRect();
+            const candidates = [
+              document.querySelector('#editor'),
+              document.querySelector('.vditor-content'),
+              document.querySelector('.vditor-ir'),
+              document.querySelector('#editor .vditor-ir .vditor-reset'),
+            ].filter(Boolean);
+            document.body.dataset.footerVisible = String(
+              footer.top >= shellRect.top && footer.bottom <= shellRect.bottom,
+            );
+            document.body.dataset.documentOverflows = String(
+              shell.scrollHeight > shell.clientHeight,
+            );
+            const scrollOwner = document.querySelector('#editor .vditor-ir .vditor-reset');
+            const scrollOwnerOverflow = getComputedStyle(scrollOwner).overflowY;
+            document.body.dataset.editorScrolls = String(
+              scrollOwner.scrollHeight > scrollOwner.clientHeight &&
+              ['auto', 'scroll'].includes(scrollOwnerOverflow),
+            );
+            document.body.dataset.editorClearOfFooter = String(
+              document.querySelector('#editor').getBoundingClientRect().bottom <= footer.top,
+            );
+            document.body.dataset.horizontalOverflow = String(
+              shell.scrollWidth > shell.clientWidth ||
+              candidates.some((element) => element.scrollWidth > element.clientWidth),
+            );
+            document.body.dataset.layoutMetrics = [
+              `viewport:${window.innerWidth}x${window.innerHeight}`,
+              `footer:${Math.round(footer.top)}-${Math.round(footer.bottom)}`,
+              ...[
+                shell,
+                document.querySelector('.library-shell'),
+                document.querySelector('.workspace'),
+                ...candidates,
+              ].map((element) => {
+                const style = getComputedStyle(element);
+                return `${element.className || element.id}:${element.clientHeight}/${element.scrollHeight}/${style.height}/${style.overflowY}`;
+              }),
+            ].join('|');
+            document.body.dataset.ready = 'true';
+          }));
+        },
+      });
+    </script>
+  </body>
+</html>

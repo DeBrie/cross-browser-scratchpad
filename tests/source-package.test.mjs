@@ -20,3 +20,9 @@ test('provides a reproducible source package for the bundled Markdown editor', a
     /vendor\(\?:\[\\\\\/\]\|\$\)/,
   );
 });
+
+test('source packaging supports repository paths containing spaces', async () => {
+  const script = await readFile(new URL('../scripts/package-source.mjs', import.meta.url), 'utf8');
+  assert.match(script, /fileURLToPath/);
+  assert.doesNotMatch(script, /\.pathname/);
+});
