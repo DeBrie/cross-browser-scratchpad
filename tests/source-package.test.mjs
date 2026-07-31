@@ -15,7 +15,8 @@ test('provides a reproducible source package for the bundled Markdown editor', a
   assert.match(guide, /Vditor 3\.11\.2/);
   assert.match(guide, /Vanessa219\/vditor\/tree\/v3\.11\.2/);
   assert.match(guide, /Vanessa219\/vditor\/blob\/v3\.11\.2\/dist\/index\.js/);
-  assert.match(guide, /Vanessa219\/vditor\/blob\/v3\.11\.2\/dist\/js\/lute\/lute\.min\.js/);
+  assert.match(guide, /88250\/lute\/tree\/v1\.7\.6/);
+  assert.match(guide, /npm run rebuild:lute/);
   assert.match(workflow, /npm run package:source/);
   assert.match(
     await readFile(new URL('../scripts/package-source.mjs', import.meta.url), 'utf8'),

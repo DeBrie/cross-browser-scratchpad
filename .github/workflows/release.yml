@@ -16,7 +16,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.24.5
       - run: npm ci
+      - run: npm run rebuild:lute
+      - run: git diff --exit-code -- third_party/lute/javascript/lute.min.js
       - run: npm test
       - run: npm run check
       - run: npm run package:firefox

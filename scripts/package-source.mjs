@@ -22,7 +22,7 @@ for (const file of [
 ]) {
   await cp(new URL(file, root), new URL(file, output));
 }
-for (const directory of ['assets/', 'firefox/', 'scripts/', 'tests/']) {
+for (const directory of ['assets/', 'firefox/', 'scripts/', 'tests/', 'third_party/']) {
   await cp(new URL(directory, root), new URL(directory, output), {
     recursive: true,
   });
