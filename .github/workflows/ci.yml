@@ -20,6 +20,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: 1.24.5
+          cache-dependency-path: third_party/lute/go.sum
       - run: npm ci
       - run: npm run rebuild:lute
       - run: git diff --exit-code -- third_party/lute/javascript/lute.min.js
