@@ -9,7 +9,8 @@ test('uses a bundled instant-render Markdown editor instead of a custom contente
   ]);
 
   assert.match(html, /href="vendor\/vditor\/dist\/index\.css"/);
-  assert.match(html, /src="vendor\/vditor\/dist\/index\.min\.js"/);
+  assert.match(html, /src="vendor\/vditor\/dist\/index\.js"/);
+  assert.doesNotMatch(html, /index\.min\.js/);
   assert.match(html, /id="editor"/);
   assert.doesNotMatch(html, /contenteditable=/);
   assert.match(app, /new Vditor\("editor",/);
@@ -20,4 +21,11 @@ test('uses a bundled instant-render Markdown editor instead of a custom contente
   assert.doesNotMatch(app, /markdownFromEditor/);
   assert.doesNotMatch(app, /renderLiveMarkdown/);
   assert.doesNotMatch(app, /convertHeadingShortcut/);
+});
+
+test('packages Vditor\'s readable runtime instead of its minified bundle', async () => {
+  const vendorScript = await readFile(new URL('../scripts/prepare-vendor.mjs', import.meta.url), 'utf8');
+
+  assert.match(vendorScript, /'dist\/index\.js'/);
+  assert.doesNotMatch(vendorScript, /'dist\/index\.min\.js'/);
 });

@@ -7,7 +7,7 @@ await rm(vendorRoot, { recursive: true, force: true });
 await mkdir(vendorRoot, { recursive: true });
 const runtimeFiles = [
   'dist/index.css',
-  'dist/index.min.js',
+  'dist/index.js',
   'dist/css/content-theme/light.css',
   'dist/js/lute/lute.min.js',
   'dist/js/i18n/en_US.js',
